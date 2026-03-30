@@ -34,7 +34,7 @@ public class ClientChatUDP {
         }
         this.dedicatedServerPort = Integer.parseInt(
                 ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
-        System.out.println("Connected to server. Dedicated port: " + dedicatedServerPort);
+        System.out.println("Connecté au serveur. Port dédié : " + dedicatedServerPort);
 
         // Démarre un thread d'écoute qui reçoit et affiche les messages
         Thread ecouteThread = new Thread(() -> {
@@ -45,7 +45,7 @@ public class ClientChatUDP {
                 }
             } catch (IOException e) {
                 if (!socket.isClosed()) {
-                    System.err.println("Receive error: " + e.getMessage());
+                    System.err.println("Erreur de réception : " + e.getMessage());
                 }
             }
         });
@@ -61,7 +61,7 @@ public class ClientChatUDP {
             if (ligne.equalsIgnoreCase("exit")) {
                 sendTo(ToServeurRegistreCommandes.EXIT.format(), dedicatedServerPort);
                 socket.close();
-                System.out.println("Disconnected from chat.");
+                System.out.println("Déconnecté du chat.");
                 break;
             }
 
@@ -82,4 +82,5 @@ public class ClientChatUDP {
         socket.receive(packet);
         return new String(packet.getData(), 0, packet.getLength());
     }
+
 }

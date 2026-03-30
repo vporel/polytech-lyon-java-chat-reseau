@@ -32,12 +32,19 @@ public class ClientChatUDP {
         if (!ToClientRegistreCommandes.PORT.matches(response)) {
             throw new IOException("Réponse inattendue du serveur : " + response);
         }
-        this.portServeurDedie = Integer.parseInt(
+        portServeurDedie = Integer.parseInt(
                 ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
-        System.out.println("Connecté au serveur. Port dédié : " + dedicatedServerPort);
+        System.out.println("Connecté au serveur. Port dédié : " + portServeurDedie);
+        ecouterServeur();
+        ecouterUtilisateur();
 
-        // Démarre un thread d'écoute qui reçoit et affiche les messages
-        Thread ecouteThread = new Thread(() -> {
+    }
+
+    /**
+     * Démarre un thread d'écoute qui reçoit et affiche les messages
+     */
+    private void ecouterServeur(){
+        new Thread(() -> {
             try {
                 while (!socket.isClosed()) {
                     String msg = attendreMessage();
@@ -48,15 +55,17 @@ public class ClientChatUDP {
                     System.err.println("Erreur de réception : " + e.getMessage());
                 }
             }
-        });
-        ecouteThread.setDaemon(true);
-        ecouteThread.start();
+        }).start();
+    }
 
-        // Lit en boucle les messages saisis au clavier et les envoie sur le port dédié
+    /**
+     * Lit en boucle les messages saisis au clavier et les envoie sur le port dédié
+     */
+    private void ecouterUtilisateur() throws IOException {
         Scanner scanner = new Scanner(System.in);
-        while (scanner.hasNextLine()) {
+        while (true) {
+            System.out.println("Entrez un message ('exit' pour quitter) : ");
             String ligne = scanner.nextLine();
-
             // Si l'utilisateur tape "exit", envoie EXIT et ferme la socket
             if (ligne.equalsIgnoreCase("exit")) {
                 envoyerMessage(ToServeurRegistreCommandes.EXIT.format());
@@ -70,14 +79,10 @@ public class ClientChatUDP {
         scanner.close();
     }
 
-    private void ecouter() throws IOException {
-        while(true) {
-            String message = attendreMessage();
-            System.out.println(message);
-        }
-    }
-
-    public void envoyerMessage(String message) throws IOException {
+    /**
+     * Envoie un message au serveur sur le port dédié. S'assurer que le client est connecté avant d'envoyer.
+     */
+    private void envoyerMessage(String message) throws IOException {
         if(portServeurDedie == 0){
             throw new IllegalStateException("Client non connecté au serveur. Veuillez appeler connect() avant d'envoyer des messages.");
         }

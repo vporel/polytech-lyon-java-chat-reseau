@@ -58,7 +58,9 @@ public class GestionnaireClient implements Runnable {
 
     private void broadcastMessage(String message){
         for(GestionnaireClient manager : clientsConnectes.values()){
-            manager.envoyerMessage(message);
+            if(manager != this){
+                manager.envoyerMessage(message);
+            }
         }
     }
 }

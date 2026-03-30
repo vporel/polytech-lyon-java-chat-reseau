@@ -27,15 +27,22 @@ public class ClientChatUDP {
         //Wait for response
         String response = waitForResponse();
         if(ToClientRegistreCommandes.PORT.matches(response)) {
-            System.out.println("Received port response: " + response);
             this.dedicatedServerPort = Integer.parseInt(ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
             System.out.println("Connected to server. Dedicated port: " + this.dedicatedServerPort);
-            while(true) {
-                String message = waitForResponse();
-                System.out.println("Received: " + message);
-            }
+            listen();
         }else{
             throw new IOException("Failed to connect to server: " + response);
+        }
+    }
+
+    private void listen() throws IOException {
+        while(true) {
+            String message = waitForResponse();
+            if(ToClientRegistreCommandes.NEW_CLIENT.matches(message)) {
+                System.out.printf("%s dit : Bonjour %s%n", pseudo, ToClientRegistreCommandes.NEW_CLIENT.extractParameters(message)[0]);
+            } else {
+
+            }
         }
     }
 

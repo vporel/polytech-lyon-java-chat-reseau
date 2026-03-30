@@ -13,27 +13,27 @@ import java.util.concurrent.ConcurrentMap;
 public class ServeurChatUDP {
     private final int port;
     private final ConcurrentMap<String, GestionnaireClient> clientsConnectes;
+    private final DatagramSocket socket;
 
-    public ServeurChatUDP(int port) {
+    public ServeurChatUDP(int port) throws SocketException {
         this.port = port;
         this.clientsConnectes = new ConcurrentHashMap<>();
+        socket = new DatagramSocket(port);
     }
 
     public void start() throws IOException {
-        try (DatagramSocket socket = new DatagramSocket(port)) {
-            System.out.println("UDP Server started on port " + port);
-            byte[] buffer = new byte[1024];
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                if(packet.getLength() > 0) {
-                    handlePacket(socket, packet);
-                }
+        System.out.println("UDP Server started on port " + port);
+        byte[] buffer = new byte[1024];
+        while (true) {
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            socket.receive(packet);
+            if(packet.getLength() > 0) {
+                gererPacket(packet);
             }
         }
     }
 
-    private void handlePacket(DatagramSocket socket, DatagramPacket packet) throws SocketException {
+    private void gererPacket(DatagramPacket packet) throws SocketException {
         String message = new String(packet.getData(), 0, packet.getLength());
         String response;
         if(ToServeurRegistreCommandes.JOIN.matches(message)){
@@ -64,7 +64,7 @@ public class ServeurChatUDP {
 
     private void broadcastMessage(String message){
         for(GestionnaireClient manager : clientsConnectes.values()){
-            manager.sendMessage(message);
+            manager.envoyerMessage(message);
         }
     }
 }

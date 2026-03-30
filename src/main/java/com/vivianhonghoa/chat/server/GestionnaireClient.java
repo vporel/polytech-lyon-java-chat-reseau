@@ -7,7 +7,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Consumer;
 
 public class GestionnaireClient implements Runnable {
     private final ClientInfo clientInfo;
@@ -28,7 +27,7 @@ public class GestionnaireClient implements Runnable {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 clientSocket.receive(packet);
                 if(packet.getLength() > 0) {
-                    handlePacket(packet);
+                    gererPacket(packet);
                 }
             }
         } catch (IOException e) {
@@ -36,7 +35,7 @@ public class GestionnaireClient implements Runnable {
         }
     }
 
-    public void handlePacket(DatagramPacket packet) {
+    public void gererPacket(DatagramPacket packet) {
         String message = new String(packet.getData(), 0, packet.getLength());
         if(ToServeurRegistreCommandes.EXIT.matches(message)){
             broadcastMessage(String.format("%s a quitté le chat", clientInfo.pseudo()));
@@ -47,7 +46,7 @@ public class GestionnaireClient implements Runnable {
         }
     }
 
-    public void sendMessage(String message) {
+    public void envoyerMessage(String message) {
         byte[] buffer = message.getBytes();
         try {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(clientInfo.adresseIP()), clientInfo.port());
@@ -59,7 +58,7 @@ public class GestionnaireClient implements Runnable {
 
     private void broadcastMessage(String message){
         for(GestionnaireClient manager : clientsConnectes.values()){
-            manager.sendMessage(message);
+            manager.envoyerMessage(message);
         }
     }
 }

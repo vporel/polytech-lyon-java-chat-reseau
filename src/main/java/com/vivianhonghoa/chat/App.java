@@ -5,7 +5,6 @@ import com.vivianhonghoa.chat.client.ClientChatUDP;
 import com.vivianhonghoa.chat.server.ServeurChatUDP;
 
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.Scanner;
 
 public class App {
@@ -66,7 +65,7 @@ public class App {
         System.out.println("Entrez votre pseudo: ");
         String pseudo = new Scanner(System.in).nextLine();
         ClientChatUDP client = new ClientChatUDP(pseudo, serverAddress);
-        client.connect(serverPort);
+        client.connecter(serverPort);
     }
 
 }

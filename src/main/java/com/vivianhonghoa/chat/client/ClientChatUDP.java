@@ -11,51 +11,51 @@ import java.net.SocketException;
 
 public class ClientChatUDP {
     private final String pseudo;
-    private final String serverAddress;
+    private final String adresseServeur;
     private final DatagramSocket socket;
-    private int dedicatedServerPort;
+    private int portServeurDedie;
 
-    public ClientChatUDP(String pseudo, String serverAddress) throws SocketException {
+    public ClientChatUDP(String pseudo, String adresseServeur) throws SocketException {
         this.pseudo = pseudo;
-        this.serverAddress = serverAddress;
+        this.adresseServeur = adresseServeur;
         this.socket = new DatagramSocket();
     }
 
-    public void connect(int serverPort) throws IOException {
+    public void connecter(int serverPort) throws IOException {
         String joinMessage = ToServeurRegistreCommandes.JOIN.format(pseudo);
-        sendMessage(joinMessage, serverPort);
+        envoyerMessage(joinMessage, serverPort);
         //Wait for response
-        String response = waitForResponse();
+        String response = attendreMessage();
         if(ToClientRegistreCommandes.PORT.matches(response)) {
-            this.dedicatedServerPort = Integer.parseInt(ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
-            System.out.println("Connected to server. Dedicated port: " + this.dedicatedServerPort);
-            listen();
+            this.portServeurDedie = Integer.parseInt(ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
+            System.out.println("Connecté au server. Port dédié : " + this.portServeurDedie);
+            ecouter();
         }else{
-            throw new IOException("Failed to connect to server: " + response);
+            throw new IOException("Echec de la connexion au serveur : " + response);
         }
     }
 
-    private void listen() throws IOException {
+    private void ecouter() throws IOException {
         while(true) {
-            String message = waitForResponse();
+            String message = attendreMessage();
             System.out.println(message);
         }
     }
 
-    public void sendMessage(String message) throws IOException {
-        if(dedicatedServerPort == 0){
-            throw new IllegalStateException("Client not connected to server. Please join the chat first.");
+    public void envoyerMessage(String message) throws IOException {
+        if(portServeurDedie == 0){
+            throw new IllegalStateException("Client non connecté au serveur. Veuillez appeler connect() avant d'envoyer des messages.");
         }
-        sendMessage(message, dedicatedServerPort);
+        envoyerMessage(message, portServeurDedie);
     }
 
-    private void sendMessage(String message, int serverPort) throws IOException {
+    private void envoyerMessage(String message, int portServeur) throws IOException {
         byte[] buffer = message.getBytes();
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(serverAddress), serverPort);
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(adresseServeur), portServeur);
         socket.send(packet);
     }
 
-    private String waitForResponse() throws IOException {
+    private String attendreMessage() throws IOException {
         byte[] responseBuffer = new byte[1024];
         DatagramPacket responsePacket = new DatagramPacket(responseBuffer, responseBuffer.length);
         socket.receive(responsePacket);

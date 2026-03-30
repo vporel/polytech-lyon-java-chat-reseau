@@ -29,12 +29,12 @@ public class App {
             startServer(port);
         }else if(mode.equalsIgnoreCase("client")) {
             if(args.length < 3) {
-                System.out.println("Please provide the server address and port for the client (e.g: --server localhost:7000)");
+                System.out.println("Please provide the server address and port for the client (e.g: --serveur localhost:7000)");
                 return;
             }
             String serverArg = args[1];
-            if (!serverArg.equalsIgnoreCase("--server")) {
-                System.out.println("Invalid argument: " + serverArg + ". Expected '--server'");
+            if (!serverArg.equalsIgnoreCase("--serveur")) {
+                System.out.println("Invalid argument: " + serverArg + ". Expected '--serveur'");
                 return;
             }
             String serverInfo = args[2];

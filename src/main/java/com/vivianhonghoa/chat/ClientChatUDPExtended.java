@@ -18,7 +18,7 @@ public class ClientChatUDPExtended extends ClientChatUDP {
             System.out.print("Message to send ('exit' to quit): ");
             String message = scanner.nextLine();
             try {
-                envoyerMessage(message);
+                sendMessage(message);
                 if(message.equalsIgnoreCase("exit")) {
                     System.out.println("Client exiting...");
                     break;

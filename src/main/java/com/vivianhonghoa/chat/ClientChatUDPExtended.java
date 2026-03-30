@@ -1,15 +1,15 @@
 package com.vivianhonghoa.chat;
 
+import com.vivianhonghoa.chat.client.ClientChatUDP;
+
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.Scanner;
 
-public class UDPClientExtended extends UDPClient {
+public class ClientChatUDPExtended extends ClientChatUDP {
 
-    public UDPClientExtended(String serverAddress, int serverPort) {
-        super(serverAddress, serverPort);
+    public ClientChatUDPExtended(String pseudo, String serverAddress) throws SocketException {
+        super(pseudo, serverAddress);
     }
 
     public void listenMessage(){

@@ -7,15 +7,16 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ServeurChatUDP {
     private final int port;
-    private final List<GestionnaireClient> gestionnairesClients;
+    private final ConcurrentMap<String, GestionnaireClient> clientsConnectes;
 
     public ServeurChatUDP(int port) {
         this.port = port;
-        this.gestionnairesClients = new java.util.concurrent.CopyOnWriteArrayList<>();
+        this.clientsConnectes = new ConcurrentHashMap<>();
     }
 
     public void start() throws IOException {
@@ -43,10 +44,10 @@ public class ServeurChatUDP {
             GestionnaireClient manager = new GestionnaireClient(
                     new ClientInfo(pseudo, packet.getAddress().getHostAddress(), packet.getPort()),
                     clientSocket,
-                    this::broadcastMessage
+                    clientsConnectes
             );
-            this.broadcastMessage(ToClientRegistreCommandes.NEW_CLIENT.format(pseudo));
-            this.gestionnairesClients.add(manager);
+            broadcastMessage(String.format("%s a rejoint le chat", pseudo));
+            clientsConnectes.put(pseudo, manager);
             new Thread(manager).start();
         }else{
             response = "Unknown command: " + message;
@@ -62,7 +63,7 @@ public class ServeurChatUDP {
     }
 
     private void broadcastMessage(String message){
-        for(GestionnaireClient manager : gestionnairesClients){
+        for(GestionnaireClient manager : clientsConnectes.values()){
             manager.sendMessage(message);
         }
     }

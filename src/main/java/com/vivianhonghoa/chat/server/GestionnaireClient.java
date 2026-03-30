@@ -6,17 +6,18 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 public class GestionnaireClient implements Runnable {
     private final ClientInfo clientInfo;
     private final DatagramSocket clientSocket;
-    private final Consumer<String> broadcastHandler;
+    private final ConcurrentMap<String, GestionnaireClient> clientsConnectes;
 
-    public GestionnaireClient(ClientInfo clientInfo, DatagramSocket clientSocket, Consumer<String> broadcastHandler) {
+    public GestionnaireClient(ClientInfo clientInfo, DatagramSocket clientSocket, ConcurrentMap<String, GestionnaireClient> clientsConnectes) {
         this.clientInfo = clientInfo;
         this.clientSocket = clientSocket;
-        this.broadcastHandler = broadcastHandler;
+        this.clientsConnectes = clientsConnectes;
     }
 
     @Override
@@ -38,21 +39,27 @@ public class GestionnaireClient implements Runnable {
     public void handlePacket(DatagramPacket packet) {
         String message = new String(packet.getData(), 0, packet.getLength());
         if(ToServeurRegistreCommandes.EXIT.matches(message)){
-            this.broadcastHandler.accept(String.format("%s a quitté le chat", clientInfo.pseudo()));
+            broadcastMessage(String.format("%s a quitté le chat", clientInfo.pseudo()));
             clientSocket.close();
             Thread.currentThread().interrupt();
         }else{
-            this.broadcastHandler.accept(message);
+            broadcastMessage(message);
         }
     }
 
     public void sendMessage(String message) {
         byte[] buffer = message.getBytes();
         try {
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(clientInfo.ipAddress()), clientInfo.port());
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(clientInfo.adresseIP()), clientInfo.port());
             clientSocket.send(packet);
         } catch (java.io.IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void broadcastMessage(String message){
+        for(GestionnaireClient manager : clientsConnectes.values()){
+            manager.sendMessage(message);
         }
     }
 }

@@ -38,11 +38,7 @@ public class ClientChatUDP {
     private void listen() throws IOException {
         while(true) {
             String message = waitForResponse();
-            if(ToClientRegistreCommandes.NEW_CLIENT.matches(message)) {
-                System.out.printf("%s dit : Bonjour %s%n", pseudo, ToClientRegistreCommandes.NEW_CLIENT.extractParameters(message)[0]);
-            } else {
-
-            }
+            System.out.println(message);
         }
     }
 

@@ -2,7 +2,7 @@ package com.vivianhonghoa.chat.server;
 
 public record ClientInfo(
         String pseudo,
-        String ipAddress,
+        String adresseIP,
         int port
 ) {
 }

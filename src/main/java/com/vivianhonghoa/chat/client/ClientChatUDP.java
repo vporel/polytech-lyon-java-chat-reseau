@@ -1,5 +1,6 @@
 package com.vivianhonghoa.chat.client;
 
+import com.vivianhonghoa.chat.shared.DatagramSocketHelper;
 import com.vivianhonghoa.chat.shared.ToClientRegistreCommandes;
 import com.vivianhonghoa.chat.shared.ToServeurRegistreCommandes;
 
@@ -28,7 +29,7 @@ public class ClientChatUDP {
         envoyerMessage(joinMessage, serverPort);
 
         // Attend la réponse PORT:<n> et retient le port dédié
-        String response = attendreMessage();
+        String response = DatagramSocketHelper.attendreMessage(socket).message();
         if (!ToClientRegistreCommandes.PORT.matches(response)) {
             throw new IOException("Réponse inattendue du serveur : " + response);
         }
@@ -47,8 +48,13 @@ public class ClientChatUDP {
         new Thread(() -> {
             try {
                 while (!socket.isClosed()) {
-                    String msg = attendreMessage();
-                    System.out.println(msg);
+                    String message = DatagramSocketHelper.attendreMessage(socket).message();
+                    if(ToClientRegistreCommandes.TIMEOUT.matches(message)){
+                        System.out.println("Déconnecté du serveur pour inactivité.");
+                        socket.close();
+                    }else {
+                        System.out.println(message);
+                    }
                 }
             } catch (IOException e) {
                 if (!socket.isClosed()) {
@@ -63,7 +69,7 @@ public class ClientChatUDP {
      */
     private void ecouterUtilisateur() throws IOException {
         Scanner scanner = new Scanner(System.in);
-        while (true) {
+        while (!socket.isClosed()) {
             System.out.println("Entrez un message ('exit' pour quitter) : ");
             String ligne = scanner.nextLine();
             // Si l'utilisateur tape "exit", envoie EXIT et ferme la socket
@@ -71,7 +77,6 @@ public class ClientChatUDP {
                 envoyerMessage(ToServeurRegistreCommandes.EXIT.format());
                 socket.close();
                 System.out.println("Déconnecté du chat.");
-                break;
             }
 
             envoyerMessage(ligne);
@@ -93,12 +98,5 @@ public class ClientChatUDP {
         byte[] buffer = message.getBytes();
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(adresseServeur), portServeur);
         socket.send(packet);
-    }
-
-    private String attendreMessage() throws IOException {
-        byte[] responseBuffer = new byte[1024];
-        DatagramPacket responsePacket = new DatagramPacket(responseBuffer, responseBuffer.length);
-        socket.receive(responsePacket);
-        return new String(responsePacket.getData(), 0, responsePacket.getLength());
     }
 }

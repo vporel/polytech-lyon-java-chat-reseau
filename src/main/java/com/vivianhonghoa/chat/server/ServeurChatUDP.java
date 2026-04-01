@@ -1,5 +1,7 @@
 package com.vivianhonghoa.chat.server;
 
+import com.vivianhonghoa.chat.shared.DatagramSocketHelper;
+import com.vivianhonghoa.chat.shared.PacketMessage;
 import com.vivianhonghoa.chat.shared.ToClientRegistreCommandes;
 import com.vivianhonghoa.chat.shared.ToServeurRegistreCommandes;
 
@@ -23,26 +25,21 @@ public class ServeurChatUDP {
 
     public void start() throws IOException {
         System.out.println("UDP Server started on port " + port);
-        byte[] buffer = new byte[1024];
         while (true) {
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
-            if(packet.getLength() > 0) {
-                gererPacket(packet);
-            }
+            PacketMessage packetMessage = DatagramSocketHelper.attendreMessage(socket);
+            gererPacket(packetMessage);
         }
     }
 
-    private void gererPacket(DatagramPacket packet) throws SocketException {
-        String message = new String(packet.getData(), 0, packet.getLength());
+    private void gererPacket(PacketMessage input) throws SocketException {
         String response;
-        if(ToServeurRegistreCommandes.JOIN.matches(message)){
-            System.out.println("New client : @" + packet.getAddress() + ":" + packet.getPort());
+        if(ToServeurRegistreCommandes.JOIN.matches(input.message())){
+            System.out.println("Nouveau client : @" + input.packet().getAddress() + ":" + input.packet().getPort());
             DatagramSocket clientSocket = new DatagramSocket();
             response = ToClientRegistreCommandes.PORT.format(String.valueOf(clientSocket.getLocalPort()));
-            String pseudo = ToServeurRegistreCommandes.JOIN.extractParameters(message)[0];
+            String pseudo = ToServeurRegistreCommandes.JOIN.extractParameters(input.message())[0];
             GestionnaireClient manager = new GestionnaireClient(
-                    new ClientInfo(pseudo, packet.getAddress().getHostAddress(), packet.getPort()),
+                    new ClientInfo(pseudo, input.packet().getAddress().getHostAddress(), input.packet().getPort()),
                     clientSocket,
                     clientsConnectes
             );
@@ -50,11 +47,11 @@ public class ServeurChatUDP {
             clientsConnectes.put(pseudo, manager);
             new Thread(manager).start();
         }else{
-            response = "Unknown command: " + message;
+            response = "Unknown command: " + input.message();
         }
         //Respond to the client
         byte[] responseData = response.getBytes();
-        DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, packet.getAddress(), packet.getPort());
+        DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, input.packet().getAddress(), input.packet().getPort());
         try {
             socket.send(responsePacket);
         } catch (IOException e) {

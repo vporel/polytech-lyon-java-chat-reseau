@@ -1,0 +1,135 @@
+@startuml
+
+skinparam packageStyle rectangle
+
+package "com.vivianhonghoa.chat.shared" {
+
+    class Commande {
+        - name : String
+        - parametersCount : int
+        - parameterSeparator : String
+        + Commande(name : String, parametersCount : int)
+        + Commande(name : String, parametersCount : int, parameterSeparator : String)
+        + format(parameters : String...) : String
+        + matches(commandString : String) : boolean
+        + extractParameters(commandString : String) : String[]
+    }
+
+    class RegistreCommandes {
+        + {static} JOIN : Commande
+        + {static} EXIT : Commande
+        + {static} LISTE : Commande
+        + {static} PRIVATE_MESSAGE : Commande
+        + {static} PORT : Commande
+        + {static} TIMEOUT : Commande
+    }
+
+    class DatagramSocketHelper {
+        + {static} envoyerMessage(message : String, senderSocket : DatagramSocket, receiverHostName : String, receiverPort : int) : void
+        + {static} attendreMessage(socket : DatagramSocket) : PacketMessage
+    }
+
+    class PacketMessage <<record>> {
+        + message : String
+        + packet : DatagramPacket
+    }
+
+    RegistreCommandes "1" *-- "6" Commande : contient >
+    DatagramSocketHelper ..> PacketMessage : <<creates>>
+}
+
+package "com.vivianhonghoa.chat.server" {
+
+    class ServeurChatUDP {
+        - port : int
+        - clientsConnectes : ConcurrentMap<String, GestionnaireClient>
+        - socket : DatagramSocket
+        + ServeurChatUDP(port : int)
+        + start() : void
+        - gererPacket(input : PacketMessage) : void
+        - broadcastMessage(message : String) : void
+    }
+
+    class GestionnaireClient {
+        - {static} TIMEOUT_INACTIVITE : int
+        - clientInfo : ClientInfo
+        - clientSocket : DatagramSocket
+        - clientsConnectes : ConcurrentMap<String, GestionnaireClient>
+        - compteurInactivite : AtomicInteger
+        + GestionnaireClient(clientInfo : ClientInfo, clientSocket : DatagramSocket, clientsConnectes : ConcurrentMap<String, GestionnaireClient>)
+        - lancerTimerInactivite() : void
+        + run() : void
+        + gererPacket(input : PacketMessage) : void
+        + envoyerMessage(message : String) : void
+        - broadcastMessage(message : String) : void
+    }
+
+    class ClientInfo <<record>> {
+        + pseudo : String
+        + adresseIP : String
+        + port : int
+    }
+
+    class DatagramSocketHelper <<shared>>
+    class RegistreCommandes <<shared>>
+    class PacketMessage <<shared>>
+
+    GestionnaireClient ..|> Runnable
+    ServeurChatUDP "1" o-- "0..*" GestionnaireClient : gère >
+    GestionnaireClient "1" *-- "1" ClientInfo : possède >
+    GestionnaireClient "0..*" ..> GestionnaireClient : broadcast >
+
+    ServeurChatUDP ..> DatagramSocketHelper : <<uses>>
+    GestionnaireClient ..> DatagramSocketHelper : <<uses>>
+    GestionnaireClient ..> RegistreCommandes : <<uses>>
+    GestionnaireClient ..> PacketMessage : <<uses>>
+}
+
+package "com.vivianhonghoa.chat.client" {
+
+    class ClientChatUDP {
+        - pseudo : String
+        - adresseServeur : String
+        - socket : DatagramSocket
+        - portServeurDedie : int
+        + ClientChatUDP(pseudo : String, adresseServeur : String)
+        + connecter(portServeur : int) : void
+        - ecouter() : void
+    }
+
+    class EcouteurConsole {
+        - socket : DatagramSocket
+        - addressServeur : String
+        - portServeur : int
+        + EcouteurConsole(socket : DatagramSocket, addressServeur : String, portServeur : int)
+        + ecouter() : void
+    }
+
+    class EcouteurServeur {
+        - socket : DatagramSocket
+        + EcouteurServeur(socket : DatagramSocket)
+        + run() : void
+    }
+
+    class DatagramSocketHelper <<shared>>
+    class RegistreCommandes <<shared>>
+
+    ClientChatUDP "1" *-- "1" EcouteurConsole : crée >
+    ClientChatUDP "1" *-- "1" EcouteurServeur : crée >
+    EcouteurServeur --|> Thread
+
+    ClientChatUDP ..> DatagramSocketHelper : <<uses>>
+    ClientChatUDP ..> RegistreCommandes : <<uses>>
+    EcouteurConsole ..> DatagramSocketHelper : <<uses>>
+    EcouteurServeur ..> DatagramSocketHelper : <<uses>>
+}
+
+' Forcer l'ordre vertical : shared en haut, server au milieu, client en bas
+Commande -[hidden]down- ServeurChatUDP
+ServeurChatUDP -[hidden]down- ClientChatUDP
+PacketMessage -[hidden]down- GestionnaireClient
+DatagramSocketHelper -[hidden]down- ServeurChatUDP
+RegistreCommandes -[hidden]down- EcouteurConsole
+
+@enduml
+

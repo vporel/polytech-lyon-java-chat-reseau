@@ -1,15 +1,11 @@
 package com.vivianhonghoa.chat.client;
 
 import com.vivianhonghoa.chat.shared.DatagramSocketHelper;
-import com.vivianhonghoa.chat.shared.ToClientRegistreCommandes;
-import com.vivianhonghoa.chat.shared.ToServeurRegistreCommandes;
+import com.vivianhonghoa.chat.shared.RegistreCommandes;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.Scanner;
 
 public class ClientChatUDP {
     private final String pseudo;
@@ -23,80 +19,28 @@ public class ClientChatUDP {
         this.socket = new DatagramSocket();
     }
 
-    public void connecter(int serverPort) throws IOException {
+    public void connecter(int portServeur) throws IOException {
         // Envoie JOIN:<pseudo> au serveur sur le port principal
-        String joinMessage = ToServeurRegistreCommandes.JOIN.format(pseudo);
-        envoyerMessage(joinMessage, serverPort);
+        String joinMessage = RegistreCommandes.JOIN.format(pseudo);
+        DatagramSocketHelper.envoyerMessage(joinMessage, socket, adresseServeur, portServeur);
 
         // Attend la réponse PORT:<n> et retient le port dédié
         String response = DatagramSocketHelper.attendreMessage(socket).message();
-        if (!ToClientRegistreCommandes.PORT.matches(response)) {
+        if (!RegistreCommandes.PORT.matches(response)) {
             throw new IOException("Réponse inattendue du serveur : " + response);
         }
         portServeurDedie = Integer.parseInt(
-                ToClientRegistreCommandes.PORT.extractParameters(response)[0]);
+                RegistreCommandes.PORT.extractParameters(response)[0]);
         System.out.println("Connecté au serveur. Port dédié : " + portServeurDedie);
-        ecouterServeur();
-        ecouterUtilisateur();
-
+        ecouter();
     }
 
     /**
-     * Démarre un thread d'écoute qui reçoit et affiche les messages
+     * Lance l'écoute des messages du serveur dans un thread séparé
+     * et l'écoute de la console dans le thread principal.
      */
-    private void ecouterServeur(){
-        new Thread(() -> {
-            try {
-                while (!socket.isClosed()) {
-                    String message = DatagramSocketHelper.attendreMessage(socket).message();
-                    if(ToClientRegistreCommandes.TIMEOUT.matches(message)){
-                        System.out.println("Déconnecté du serveur pour inactivité.");
-                        socket.close();
-                    }else {
-                        System.out.println(message);
-                    }
-                }
-            } catch (IOException e) {
-                if (!socket.isClosed()) {
-                    System.err.println("Erreur de réception : " + e.getMessage());
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * Lit en boucle les messages saisis au clavier et les envoie sur le port dédié
-     */
-    private void ecouterUtilisateur() throws IOException {
-        Scanner scanner = new Scanner(System.in);
-        while (!socket.isClosed()) {
-            System.out.println("Entrez un message ('exit' pour quitter) : ");
-            String ligne = scanner.nextLine();
-            // Si l'utilisateur tape "exit", envoie EXIT et ferme la socket
-            if (ligne.equalsIgnoreCase("exit")) {
-                envoyerMessage(ToServeurRegistreCommandes.EXIT.format());
-                socket.close();
-                System.out.println("Déconnecté du chat.");
-            }
-
-            envoyerMessage(ligne);
-        }
-        scanner.close();
-    }
-
-    /**
-     * Envoie un message au serveur sur le port dédié. S'assurer que le client est connecté avant d'envoyer.
-     */
-    private void envoyerMessage(String message) throws IOException {
-        if(portServeurDedie == 0){
-            throw new IllegalStateException("Client non connecté au serveur. Veuillez appeler connect() avant d'envoyer des messages.");
-        }
-        envoyerMessage(message, portServeurDedie);
-    }
-
-    private void envoyerMessage(String message, int portServeur) throws IOException {
-        byte[] buffer = message.getBytes();
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(adresseServeur), portServeur);
-        socket.send(packet);
+    private void ecouter(){
+        new EcouteurServeur(socket).start();
+        new EcouteurConsole(socket, adresseServeur, portServeurDedie).ecouter();
     }
 }

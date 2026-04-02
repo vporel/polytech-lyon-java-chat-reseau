@@ -2,8 +2,7 @@ package com.vivianhonghoa.chat.server;
 
 import com.vivianhonghoa.chat.shared.DatagramSocketHelper;
 import com.vivianhonghoa.chat.shared.PacketMessage;
-import com.vivianhonghoa.chat.shared.ToClientRegistreCommandes;
-import com.vivianhonghoa.chat.shared.ToServeurRegistreCommandes;
+import com.vivianhonghoa.chat.shared.RegistreCommandes;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -31,7 +30,7 @@ public class GestionnaireClient implements Runnable {
     private void lancerTimerInactivite() {
         Runnable compteurInactiviteTask = () -> {
             if(compteurInactivite.incrementAndGet() >= TIMEOUT_INACTIVITE) {
-                GestionnaireClient.this.envoyerMessage(ToClientRegistreCommandes.TIMEOUT.format());
+                GestionnaireClient.this.envoyerMessage(RegistreCommandes.TIMEOUT.format());
                 System.out.println("Client '" + clientInfo.pseudo() + "' déconnecté pour inactivité.");
                 clientSocket.close();
                 clientsConnectes.remove(clientInfo.pseudo());
@@ -59,23 +58,30 @@ public class GestionnaireClient implements Runnable {
     public void gererPacket(PacketMessage input) {
         // Réinitialise le compteur d'inactivité à chaque message reçu
         compteurInactivite.set(0);
-        if(ToServeurRegistreCommandes.EXIT.matches(input.message())){
+        if(RegistreCommandes.EXIT.matches(input.message())){
             broadcastMessage(String.format("%s a quitté le chat", clientInfo.pseudo()));
             clientSocket.close();
             clientsConnectes.remove(clientInfo.pseudo());
             Thread.currentThread().interrupt();
-        }else if(ToServeurRegistreCommandes.LISTE.matches(input.message())) {
+        }else if(RegistreCommandes.LISTE.matches(input.message())) {
             StringBuilder response = new StringBuilder("Utilisateurs connectés : ");
             for(int i = 0; i < clientsConnectes.size(); i++) {
                 response.append(clientsConnectes.keySet().toArray()[i]);
                 if (i < clientsConnectes.size() - 1) response.append("; ");
             }
             envoyerMessage(response.toString());
-        }else if(ToServeurRegistreCommandes.PRIVATE_MESSAGE.matches(input.message())) {
-            String[] params = ToServeurRegistreCommandes.PRIVATE_MESSAGE.extractParameters(input.message());
+        }else if(RegistreCommandes.PRIVATE_MESSAGE.matches(input.message())) {
+            String[] params = RegistreCommandes.PRIVATE_MESSAGE.extractParameters(input.message());
             String destinataire = params[0];
             String msg = params[1];
-            GestionnaireClient destManager = clientsConnectes.get(destinataire);
+            //Find the manager with insensitive pseudo
+            GestionnaireClient destManager = null;
+            for(String pseudo : clientsConnectes.keySet()) {
+                if(pseudo.equalsIgnoreCase(destinataire)) {
+                    destManager = clientsConnectes.get(pseudo);
+                    break;
+                }
+            }
             if(destManager != null) {
                 destManager.envoyerMessage(String.format("[MP de %s]: %s", clientInfo.pseudo(), msg));
             }else{

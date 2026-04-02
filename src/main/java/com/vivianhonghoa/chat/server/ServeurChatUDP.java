@@ -2,8 +2,7 @@ package com.vivianhonghoa.chat.server;
 
 import com.vivianhonghoa.chat.shared.DatagramSocketHelper;
 import com.vivianhonghoa.chat.shared.PacketMessage;
-import com.vivianhonghoa.chat.shared.ToClientRegistreCommandes;
-import com.vivianhonghoa.chat.shared.ToServeurRegistreCommandes;
+import com.vivianhonghoa.chat.shared.RegistreCommandes;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -33,11 +32,11 @@ public class ServeurChatUDP {
 
     private void gererPacket(PacketMessage input) throws SocketException {
         String response;
-        if(ToServeurRegistreCommandes.JOIN.matches(input.message())){
+        if(RegistreCommandes.JOIN.matches(input.message())){
             System.out.println("Nouveau client : @" + input.packet().getAddress() + ":" + input.packet().getPort());
             DatagramSocket clientSocket = new DatagramSocket();
-            response = ToClientRegistreCommandes.PORT.format(String.valueOf(clientSocket.getLocalPort()));
-            String pseudo = ToServeurRegistreCommandes.JOIN.extractParameters(input.message())[0];
+            response = RegistreCommandes.PORT.format(String.valueOf(clientSocket.getLocalPort()));
+            String pseudo = RegistreCommandes.JOIN.extractParameters(input.message())[0];
             GestionnaireClient manager = new GestionnaireClient(
                     new ClientInfo(pseudo, input.packet().getAddress().getHostAddress(), input.packet().getPort()),
                     clientSocket,

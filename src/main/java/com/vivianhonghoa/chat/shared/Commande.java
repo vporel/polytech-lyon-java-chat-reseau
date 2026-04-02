@@ -28,7 +28,7 @@ public class Commande {
     public boolean matches(String commandString) {
         String[] parts = commandString.split(parameterSeparator, parametersCount+1);
         if(parts.length != parametersCount+1) return false;
-        return parts[0].equals(name);
+        return parts[0].equalsIgnoreCase(name);
     }
 
     public String[] extractParameters(String commandString) {
